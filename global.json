@@ -1,12 +1,13 @@
 {
   "sdk": {
-    "version": "8.0.401",
+    "version": "6.0.428",
     "rollForward": "feature",
-    "workloadVersion": "8.0.401"
+    "workloadVersion": "6.0.428"
   },
   "msbuild-sdks": {
     "MSBuild.Sdk.Extras": "3.0.44",
     "Microsoft.Build.NoTargets": "3.7.0",
     "Medtronic.Xamarin.Legacy.Sdk": "0.2.0-alpha5"
   }
+
 }
