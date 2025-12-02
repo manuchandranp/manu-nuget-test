@@ -35,11 +35,6 @@ parameters:
     type: boolean
     default: false
 
-  - name: SonarQube
-    displayName: 'Run static analysis'
-    type: boolean
-    default: false
-
   - name: SaveWorkspace
     displayName: 'Save workspace'
     type: boolean
@@ -137,39 +132,34 @@ parameters:
 resources:
   repositories:
   # Include the submodule repositories as resources so that the pipeline is able to clone them
-  - repository: smartsync-instrumentmobile-release
+  - repository: manu-nuget-test
     type: git
-    name: smartsync-instrumentmobile-release
-  - repository: smartsync-persisted-discretedata-content
+    name: manu-nuget-test
+  - repository: manu-nuget-test
     type: git
-    name: smartsync-persisted-discretedata-content
+    name: manu-nuget-test
   # Include for JFrog
-  - repository: templates
-    name: shared/mlife-cicd-azdo-pipeline-templates
+  - repository: manu-nuget-test
     type: git
-    ref: refs/tags/v0.0.0-feat-PR130093
-  - repository: tools
-    type: git
-    name: smartsync-tool-dev
-    ref: develop
+    name: manu-nuget-test
+    ref: main
     
 # Specify when the pipeline should be automatically ran
 trigger: none
 
 variables:
 - group: SmartSyncFrwk
-- name: DEVTOOLSBranch
+- name: main
   value: $[ resources.repositories.tools.ref ]
 
 jobs:
-- template: PipelineTemplates/frwk-build-template.yml
+- template: frwk-build-template.yml
   parameters:
     BuildConfiguration: ${{ parameters.BuildConfiguration }}
     BuildConfigurationiOS: ${{ parameters.BuildConfigurationiOS }}
     Gated: ${{ parameters.Gated }}
     MaxFailedTestRetryCount: ${{ parameters.MaxFailedTestRetryCount }}
     CodeCoverage: ${{ parameters.CodeCoverage }}
-    SonarQube: ${{ parameters.SonarQube }}
     SaveWorkspace: ${{ parameters.SaveWorkspace }}
     PublishCommonPlatform: ${{ parameters.PublishCommonPlatform }}
     PublishDomainSpecTestRunner: ${{ parameters.PublishDomainSpecTestRunner }}
