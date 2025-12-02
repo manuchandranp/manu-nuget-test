@@ -260,12 +260,6 @@ jobs:
     - ${{ if not(or(parameters.JFrogPrivateEndpoint,  startsWith(parameters.AgentName, 'CRM-'))) }}:
       - template: jfrog-variables-public.yml  
 
-    # Include SonarQube variables from the shared template
-    - template: sonarqube-variables.yml
-      parameters:
-        SonarQube: ${{ parameters.SonarQube }}
-        BuildReason: ${{ variables['Build.Reason'] }}
-
     - name: enableCodeCoverage
       value: $[ or(eq(variables['Build.Reason'], 'PullRequest'), and(eq('${{ parameters.Gated }}', 'true'), eq('${{ parameters.CodeCoverage }}', 'true'))) ]
 
@@ -1072,3 +1066,4 @@ jobs:
     #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
     #         DisplayName: Publish Medtronic.Tools.DeltaTranslations
     #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishDeltaTranslations }}, 'true'))
+
