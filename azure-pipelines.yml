@@ -30,7 +30,7 @@ jobs:
         displayName: 'Restore NuGet Packages'
         inputs:
           command: 'restore'
-          projects: '**/*.csproj'  # Adjust if needed
+          projects: '**/*'  # Adjust if needed
 
       # Execute JFrogDotnetCore task to install dependencies
       - task: JFrogDotnetCore@1
