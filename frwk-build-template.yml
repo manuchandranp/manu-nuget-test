@@ -1,0 +1,1074 @@
+parameters:
+  - name: BuildConfiguration
+    displayName: 'Build Configuration'
+    type: string
+    default: 'Release'
+    values:
+      - 'Release'
+      - 'ReleaseMin'
+      - 'Debug'
+
+  - name: BuildConfigurationiOS
+    displayName: 'Build Configuration iOS (sanity only, no IPA)'
+    type: string
+    default: 'Default'
+    values:
+      - 'Default'
+      - 'iOS_Staging'
+      - 'iOS_VT'
+      - 'iOS_Debug'
+      - 'Skip_iOS_Build'
+
+  - name: Gated
+    displayName: 'Gated Build (runs tests)'
+    type: boolean
+    default: true
+
+  - name: CodeCoverage
+    displayName: 'Collect code coverage'
+    type: boolean
+    default: false
+
+  - name: SonarQube
+    displayName: 'Run static analysis'
+    type: boolean
+    default: false
+
+  - name: SaveWorkspace
+    displayName: 'Save workspace'
+    type: boolean
+    default: false
+
+  - name: EnableLocalization
+    displayName: 'Enable Localization'
+    type: boolean
+    default: false
+
+  - name: PublishCommonPlatform
+    displayName: 'Publish CommonPlatform (framework)'
+    type: boolean
+    default: false
+
+  - name: PublishProgrammerWindows
+    displayName: 'Publish Programmer.Windows'
+    type: boolean
+    default: false
+
+  - name: PublishDomainSpecTestRunner
+    displayName: 'Publish DomainSpecTestRunner'
+    type: boolean
+    default: false
+
+  - name: PublishMedtronicMSBuildTasks
+    displayName: 'Publish Medtronic.MSBuildTasks'
+    type: boolean
+    default: false
+
+  - name: PublishDtcLite
+    displayName: Publish DtcLite
+    type: boolean
+    default: false
+
+  - name: PublishSiriusXmltu
+    displayName: 'Publish SiriusXMLTU'
+    type: boolean
+    default: false
+
+  - name: PublishBenchProgrammer
+    displayName: 'Publish BenchProgrammer'
+    type: boolean
+    default: false
+
+  - name: PublishExpressionTester
+    displayName: 'Publish ExpressionTester'
+    type: boolean
+    default: false
+
+  - name: PublishLocalizationMergeAuditTool
+    displayName: 'Publish Localization Merge Audit'
+    type: boolean
+    default: false
+
+  - name: PublishLabelFinder
+    displayName: 'Publish LabelFinder'
+    type: boolean
+    default: false
+
+  - name: PublishLabelComparer
+    displayName: 'Publish LabelComparer'
+    type: boolean
+    default: false
+
+  - name: PublishLabelProcessor
+    displayName: 'Publish LabelProcessor'
+    type: boolean
+    default: false
+
+  - name: PublishGenerateViewUnitTests
+    displayName: 'Publish GenerateViewUnitTests'
+    type: boolean
+    default: false
+
+  - name: PublishViewTestRunner
+    displayName: 'Publish ViewTestRunner'
+    type: boolean
+    default: false
+
+  - name: PublishChoiceElementProcessor
+    displayName: 'Publish ChoiceElementProcessor'
+    type: boolean
+    default: false
+
+  - name: PublishUISpecTestHelper
+    displayName: 'Publish UISpecTestHelper'
+    type: boolean
+    default: false
+
+  - name: PublishLabelUsages
+    displayName: 'Publish LabelUsages'
+    type: boolean
+    default: false
+
+  - name: PublishDeltaTranslations
+    displayName: 'Publish DeltaTranslations'
+    type: boolean
+    default: false
+
+  - name: toolsRef
+    displayName: 'Tools repository branch/tag reference'
+    type: string
+
+  - name: LogLevel
+    displayName: 'Log Level'
+    type: string
+    default: 'minimal'
+    values:
+      - 'minimal'
+      - 'quiet'
+      - 'normal'
+      - 'detailed'
+      - 'diagnostic'
+
+  - name: AgentName
+    type: string
+    default: 'MSPM7AAPPD0024'
+    values:
+      - 'CRM-Windows-US'
+      - 'TFS300'
+      - 'MSPM7AAPPD0024'
+      - 'Private-Agent-Pool'
+  
+  - name: JFrogPrivateEndpoint
+    displayName: 'Use JFrog Private Endpoint'
+    type: boolean
+    default: false
+
+  - name: MaxFailedTestRetryCount
+    displayName: 'Max retry count for failed tests'
+    type: number
+    default: 1
+
+jobs:
+  - job: BuildTestDeploy
+    ${{ if eq(parameters.EnableLocalization, 'true') }}:
+      displayName: 'BuildTestDeploy (with localization)'
+    ${{ else }}:
+      displayName: 'BuildTestDeploy (without localization)'
+
+    # Specify variables shared within the pipeline
+    variables:
+    - name: msbuildVersion
+      value: '17.0'
+
+    - name: chutzpahVersion
+      value: 4.4.13
+
+    - name: solutionCommonPlatform
+      value: '$(Build.SourcesDirectory)/Components/CDAS/com/CommonPlatform.sln'
+
+    - name: solutionTools
+      value: '$(Build.SourcesDirectory)/Components/CDAS/com/Tools.sln'
+
+    - name: solutionProgrammer
+      value: '$(Build.SourcesDirectory)/Programmer/com/medtronic/Programmer/Programmer.sln'
+
+    - name: buildTarget
+      value: '-t:Restore;Build'
+
+    - name: buildPlatform
+      value: 'Any CPU'
+
+    - name: buildParameters
+      value: '-p:EnableLocalizationClippingDetection=${{ parameters.EnableLocalization }}'
+
+    - name: buildOutputPath
+      ${{ if eq( parameters.BuildConfiguration, 'ReleaseMin' ) }}:
+        value: '$(Build.SourcesDirectory)/Components/CDAS/output/Release/NuGet'
+      ${{ elseif ne( parameters.BuildConfiguration, 'ReleaseMin' ) }}:
+        value: '$(Build.SourcesDirectory)/Components/CDAS/output/${{ parameters.BuildConfiguration }}/NuGet'
+
+    - name: buildToolOutputPath
+      value: '$(buildOutputPath)/tool'
+
+    - name: buildArtifactPath
+      value: '$(Build.ArtifactStagingDirectory)/framework'
+
+    - name: buildToolArtifactPath
+      value: '$(Build.ArtifactStagingDirectory)/tool'
+
+    - name: buildArchiveArtifactPath
+      value: '$(Build.ArtifactStagingDirectory)/archive'
+
+    - name: testSettingsPath
+      value: '$(Build.SourcesDirectory)/Components/CDAS/com/Directory.UnitTest.runsettings'
+
+    - name: testCategories
+      value: 'cat != ManualTest and cat != MobileIntegration and cat != RandomFail and cat != IgnoredTest'
+
+    - name: testResultsPath
+      value: '$(Agent.TempDirectory)/CoberturaTestResults'
+
+    - name: csTestCoveragePath
+      value: '$(Agent.TempDirectory)/CSCodeCoverageResults'
+
+    - name: javascriptCoverageFile
+      value: '$(Agent.TempDirectory)/lcov.info'
+
+    - name: artifactPublishSelected
+      value: $[
+                or(
+                  eq('${{ parameters.PublishCommonPlatform }}', 'true'), eq('${{ parameters.PublishDomainSpecTestRunner }}', 'true'), eq('${{ parameters.PublishMedtronicMSBuildTasks }}', 'true'),
+                  eq('${{ parameters.PublishDtcLite }}', 'true'), eq('${{ parameters.PublishProgrammerWindows }}', 'true'), eq('${{ parameters.PublishSiriusXmltu }}', 'true'),
+                  eq('${{ parameters.PublishBenchProgrammer }}', 'true'), eq('${{ parameters.PublishExpressionTester }}', 'true'), eq('${{ parameters.PublishLocalizationMergeAuditTool }}', 'true'),
+                  eq('${{ parameters.PublishLabelFinder }}', 'true'), eq('${{ parameters.PublishLabelComparer }}', 'true'), eq('${{ parameters.PublishLabelUsages }}', 'true'),
+                  eq('${{ parameters.PublishUISpecTestHelper }}', 'true'), eq('${{ parameters.PublishViewTestRunner }}', 'true'), eq('${{ parameters.PublishChoiceElementProcessor }}', 'true'),
+                  eq('${{ parameters.PublishDeltaTranslations }}', 'true'), eq('${{ parameters.PublishGenerateViewUnitTests }}', 'true')
+                )]
+
+    - name: artifactPublishAllowed
+      value : $[
+                and(
+                    eq('${{ parameters.BuildConfiguration }}', 'Release'), not(startsWith(variables['Build.SourceBranch'], 'refs/heads/feature'))
+                )]
+
+    - name: artifactPublishRequired
+      value: $[ and(eq(variables['artifactPublishSelected'], 'true'), eq(variables['artifactPublishAllowed'], 'true')) ]
+
+    - ${{ if or(parameters.JFrogPrivateEndpoint,  startsWith(parameters.AgentName, 'CRM-')) }}:
+      - template: jfrog-variables-private.yml
+    
+    - ${{ if not(or(parameters.JFrogPrivateEndpoint,  startsWith(parameters.AgentName, 'CRM-'))) }}:
+      - template: jfrog-variables-public.yml  
+
+    # Include SonarQube variables from the shared template
+    - template: sonarqube-variables.yml
+      parameters:
+        SonarQube: ${{ parameters.SonarQube }}
+        BuildReason: ${{ variables['Build.Reason'] }}
+
+    - name: enableCodeCoverage
+      value: $[ or(eq(variables['Build.Reason'], 'PullRequest'), and(eq('${{ parameters.Gated }}', 'true'), eq('${{ parameters.CodeCoverage }}', 'true'))) ]
+
+    - name: nugetFilePath
+      value: $(Build.SourcesDirectory)/NuGet.config
+
+    # Where the pipeline should be ran on
+    pool:
+      name: '${{ parameters.AgentName }}'
+
+    workspace:
+      clean: all
+    timeoutInMinutes: ${{ variables['jobTimeout'] }}
+
+    steps:
+    # Set conditional variables
+    - task: PowerShell@2
+      displayName: 'Set Conditional Variables'
+      inputs:
+        targetType: 'inline'
+        script: |
+          # Set CodeCoverage parameter, use as $env:TestCodeCoverage or $(TestCodeCoverage)
+          if ( '$(enableCodeCoverage)' -eq 'true' ) {
+            Write-Output "##vso[task.setvariable variable=TestCodeCoverage;isreadonly=true]--collect `"Code Coverage`""
+            Write-Output "##vso[task.setvariable variable=JavaScriptTestCodeCoverage;isreadonly=true]/coverage /lcov $(javascriptCoverageFile)"
+            Write-Output "##vso[task.setvariable variable=SonarCsCoverageOption;isreadonly=true]sonar.coverageReportPaths=$(csTestCoveragePath)/SonarQube.xml"
+          } else {
+            Write-Output "##vso[task.setvariable variable=TestCodeCoverage;isreadonly=true]"
+            Write-Output "##vso[task.setvariable variable=JavaScriptTestCodeCoverage;isreadonly=true]"
+            Write-Output "##vso[task.setvariable variable=SonarCsCoverageOption;isreadonly=true]"
+          }
+
+          # Set BuildConfigurationiOSResolved parameter, use as $env:BuildConfigurationiOSResolved or $(BuildConfigurationiOSResolved)
+          if ('${{ parameters.BuildConfigurationiOS }}' -eq 'Default' -or '${{ parameters.BuildConfigurationiOS }}' -eq 'Skip_iOS_Build') {
+            if ('${{ parameters.BuildConfiguration }}' -eq 'Release' -or '${{ parameters.BuildConfiguration }}' -eq 'ReleaseMin') {
+              Write-Output "##vso[task.setvariable variable=BuildConfigurationiOSResolved;isreadonly=true]iOS_Staging"
+            } else {
+              Write-Output "##vso[task.setvariable variable=BuildConfigurationiOSResolved;isreadonly=true]iOS_Debug"
+            }
+          } else {
+            Write-Output "##vso[task.setvariable variable=BuildConfigurationiOSResolved;isreadonly=true]${{ parameters.BuildConfigurationiOS }}"
+          }
+
+    # Checkout including submodules
+    - checkout: self
+      lfs: true
+      submodules: true
+      fetchDepth: 0
+
+    #Checkout ResignIPA from smartsync tools using sparse checkout
+    - task: PowerShell@2
+      displayName: 'Sparse Checkout EnvironmentTool'
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+      inputs:
+        targetType: 'inline'
+        script: |
+
+          #Create devtools folder in pipeline
+          Write-Host "Setting pipeline location and making devtools folder"
+          Set-Location -Path $(Pipeline.Workspace)
+          mkdir devtools
+          Set-Location -Path $(Pipeline.Workspace)\devtools
+
+          #initialize git and variables
+          git init
+
+          # Configure Git LFS
+          git lfs install
+          git config lfs.https://dev.azure.com/MDTProductDevelopment/programmer-app/_git/smartsync-tool-dev/info/lfs.locksverify false  # Disable locks verification for Azure DevOps Git LFS
+
+          #Set the files we want to download
+          git config core.sparsecheckout true
+          echo com/medtronic/EnvironmentTool/ >> .git/info/sparse-checkout
+          git sparse-checkout set "com/medtronic/EnvironmentTool"
+
+          #Enable access to smartsync-tool-dev repo off designated branch
+          git remote add -f origin https://$(System.AccessToken)@dev.azure.com/MDTProductDevelopment/programmer-app/_git/smartsync-tool-dev
+          Write-Host "Sparse-checkout for ResignIPA and EnvironmentTool from branch ${{ parameters.toolsRef }}"
+          git pull --depth=1 origin ${{ parameters.toolsRef }}
+
+    # Pass the expected Windows versions to the PowerShell script
+    # The version is also maintained in devtools/com/medtronic/EnvironmentTool/config.json
+    - task: PowerShell@2
+      displayName: 'Run and Verify PowerShell Script on Windows'
+      inputs:
+        targetType: 'filePath'
+        pwsh: true
+        filePath: '$(Pipeline.Workspace)/devtools/com/medtronic/EnvironmentTool/envWindows.ps1'
+        arguments: >-
+          -ExpectedWindowsVersions "21H2", "22H2", "23H2", "24H2"
+
+    # Get .NET SDK version from global.json
+    - task: PowerShell@2
+      displayName: 'Get .NET SDK Version'
+      inputs:
+        targetType: 'inline'
+        script: |
+          # Read global.json file and parse .NET SDK version to use
+          $GlobalJsonFile = ""
+          $GlobalJsonPath = "$(Build.SourcesDirectory)/global.json"
+          if (Test-Path -Path "$GlobalJsonPath" -PathType Leaf) {
+            $GlobalJsonFile = Get-Content -Path "$GlobalJsonPath"
+          }
+
+          # Parse version from global.json content
+          if ([String]$GlobalJsonFile -match '\"version\":\s*\"((\d+)\.\d+\.\d+)\"') {
+            $DotnetVersion = [String]$Matches[1]
+            $DotnetVersionMajor = [String]$Matches[2]
+
+            Write-Output "##vso[task.setvariable variable=DotnetVersion;isreadonly=true]$DotnetVersion"
+            Write-Output "##vso[task.setvariable variable=DotnetVersionMajor;isreadonly=true]$DotnetVersionMajor"
+          }
+          else {
+            throw "##[error]Could not find or parse .NET SDK version from global.json. Please verify global.json file exists or contents are set correctly."
+          }
+
+    # Display conditional variables
+    - task: PowerShell@2
+      displayName: 'Display Conditional Variables'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Output "DotnetVersion: $env:DotnetVersion"
+          Write-Output "DotnetVersionMajor: $env:DotnetVersionMajor"
+          Write-Output "BuildConfiguration: ${{ parameters.BuildConfiguration }}"
+          Write-Output "BuildConfigurationiOS: ${{ parameters.BuildConfigurationiOS }}"
+          Write-Output "BuildConfigurationiOSResolved: $env:BuildConfigurationiOSResolved"
+          Write-Output "BuildOutputPath: $(buildOutputPath)"
+          Write-Output "Gated: ${{ parameters.Gated }}"
+          Write-Output "CodeCoverage Enabled: $(enableCodeCoverage)"
+          Write-Output "sonarCsCoverageOption: $(SonarCsCoverageOption)"
+          Write-Output "SonarQube: $(enableSonarScanning)"
+          Write-Output "TestCodeCoverage: $env:TestCodeCoverage"
+          Write-Output "JavaScriptTestCodeCoverage: $env:JavaScriptTestCodeCoverage"
+          Write-Output "EnableLocalization: ${{ parameters.EnableLocalization }}"
+          Write-Output "Using Private Endpoint: $(UsePrivateEndpoint)"
+          Write-Output "Using JFrog URI: $(ArtifactoryURI)"
+          Write-Output "Using JFrog Artifactory Connection: $(ArtifactoryConnection)"
+          Write-Output "Using JFrog Platform: $(ArtifactoryConnectionPlatform)"
+          Write-Output "Publish allowed: $(artifactPublishAllowed)"
+          Write-Output "Publish selected: $(artifactPublishSelected)"
+          Write-Output "Publish required: $(artifactPublishRequired)"
+          Write-Output "Re-run failed tests: ${env:RERUNFAILEDTESTS}"
+          Write-Output "Max failed test retry count: ${{ parameters.MaxFailedTestRetryCount }}"
+          Write-Host "##vso[build.addbuildtag]${{ parameters.BuildConfiguration }}"
+          Write-Host "##vso[build.addbuildtag]$env:BuildConfigurationiOSResolved"
+          Write-Host "##vso[build.addbuildtag]Gated=${{ parameters.Gated }}"
+          Write-Host "##vso[build.addbuildtag]SonarQube=$(enableSonarScanning)"
+          Write-Host "##vso[build.addbuildtag]CodeCoverageEnabled=$(enableCodeCoverage)"
+          Write-Host "##vso[build.addbuildtag]EnableLocalization=${{ parameters.EnableLocalization }}"
+          Write-Host "##vso[build.addbuildtag]ArtifactPublish=$(artifactPublishRequired)"
+          Write-Host "##vso[build.addbuildtag]AgentName=$(Agent.Name)"
+
+    # Choose version of .NET SDK based on global.json
+    - task: UseDotNet@2
+      displayName: 'Set .NET SDK Version'
+      inputs:
+        packageType: 'sdk'
+        useGlobalJson: true
+        workingDirectory: '$(Build.SourcesDirectory)'
+        performMultiLevelLookup: true
+
+    # Set NuGet packages directory environment variable
+    - task: DotNetCoreCLI@2
+      displayName: 'Set repositoryPath value'
+      inputs:
+        command: 'custom'
+        custom: 'nuget'
+        arguments: config set repositoryPath $(Build.SourcesDirectory)/Components/CDAS/com/packages
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Set globalPackagesFolder value'
+      inputs:
+        command: 'custom'
+        custom: 'nuget'
+        arguments: config set globalPackagesFolder $(Build.SourcesDirectory)/Components/CDAS/com/packages
+
+    # Set SonarQube variables
+    - task: PowerShell@2
+      condition: and(succeeded(), eq(variables['enableSonarScanning'], 'true'))
+      displayName: 'Set SonarQube Variables'
+      inputs:
+        targetType: 'inline'
+        script: '$env:SONAR_SCANNER_OPTS=''-Djava.net.useSystemProxies=true'''
+
+    # Prepare Analysis Configuration task for SonarQube
+    - task: SonarQubePrepare@7
+      condition: and(succeeded(), eq(variables['enableSonarScanning'], 'true'))
+      displayName: 'Prepare SonarQube'
+      inputs:
+        sonarQube: 'SQube-ServiceConnection-Generic-shared-programmer-app'
+        scannerMode: 'dotnet'
+        projectKey: 'programmer-app_smartsync-commonplatform-library'
+        extraProperties: |
+          sonar.userHome=$(Agent.HomeDirectory)/
+          sonar.c.file.suffixes=-
+          sonar.cpp.file.suffixes=-
+          sonar.objc.file.suffixes=-
+          # File exclusions
+          sonar.exclusions=$(sonarExclusions)
+          sonar.test.exclusions=$(sonarTestExclusions)
+          # Coverage exclusions
+          sonar.coverage.exclusions=$(sonarCoverageExclusions)
+          # Additional settings
+          sonar.cs.roslyn.ignoreIssues=true
+          # Disable specific rule for JavaScript - S3504.  To be enabled once ES6 compliant JS Test Framework is used
+          # Disable specific rule for C# - S3267.  "LINQ" expressions are not preferred.
+          sonar.issue.ignore.multicriteria=S3504,S3267
+          sonar.issue.ignore.multicriteria.S3504.ruleKey=javascript:S3504
+          sonar.issue.ignore.multicriteria.S3504.resourceKey=**/*.js
+          sonar.issue.ignore.multicriteria.S3267.ruleKey=csharpsquid:S3267
+          sonar.issue.ignore.multicriteria.S3267.resourceKey=**/*.cs
+          # Dynamic properties that depend on pipeline variables
+          sonar.debug=$(System.Debug)
+          $(SonarCsCoverageOption)
+
+    # Update Nuget.config and JFrog Endpoint
+    # - template: update-nuget-jfrog.yml
+    #   parameters:
+    #     nugetFilePath: $(nugetFilePath)
+    #     JFrogUser: $(JFrogUser)
+    #     JFrogPassword: $(JFrogPassword)
+    #     ArtifactoryURISource: $(ArtifactoryURISource)
+
+    # - template: java-install-check.yml
+    #   parameters:
+    #     agentToolsDirectory: $(agent.toolsDirectory)
+
+    # Set .NET Workload config to workload-set
+    # Only available with .NET SDK 6+, otherwise workloads must be pre-installed usually through Visual Studio
+    - task: DotNetCoreCLI@2
+      enabled: true
+      displayName: 'Set .NET Workload config to workload-set'
+      condition: and(succeeded(), ge(variables['DotnetVersionMajor'], 6))
+      inputs:
+        command: 'custom'
+        custom: 'workload'
+        arguments: 'config --update-mode workload-set'
+
+    # Install maui dependencies to initialize particular version of a workset
+    # Only available with .NET SDK 6+, otherwise workloads must be pre-installed usually through Visual Studio
+    - task: JFrogDotnetCore@1
+      enabled: true
+      inputs:
+        command: 'custom'
+        customCommand: 'workload'
+        artifactoryConnection: ${{ variables['ArtifactoryConnection'] }}
+        targetResolveRepo: '$(JFrogtargetResolveRepo)' #crm-testing-ss-nuget-virtual
+        rootPath: '$(solutionCommonPlatform)'
+        collectBuildInfo: true
+        buildName: '$(Build.DefinitionName)'
+        projectKey: '$(JFrogprojectKey)'
+        arguments: 'install maui-desktop maui-ios'
+      displayName: 'Install MAUI dependencies'
+
+    # JFrog workload restore
+    - task: JFrogDotnetCore@1
+      enabled: true
+      inputs:
+        command: 'custom'
+        customCommand: 'workload'
+        artifactoryConnection: ${{ variables['ArtifactoryConnection'] }}
+        targetResolveRepo: $(JFrogtargetResolveRepo) #crm-testing-ss-nuget-virtual
+        rootPath: $(Build.SourcesDirectory)/Components/CDAS/com/
+        collectBuildInfo: true
+        buildName: $(Build.DefinitionName)
+        projectKey: $(JFrogprojectKey)
+        arguments: restore $(solutionCommonPlatform) --verbosity detailed
+      displayName: 'Dotnet Restore Workloads'
+
+    # Display version of .NET SDK and workloads
+    - task: DotNetCoreCLI@2
+      displayName: 'Display .NET SDK Version'
+      inputs:
+        command: 'custom'
+        custom: '--info'
+
+    # Display version of msbuild
+    - task: MSBuild@1
+      displayName: 'Display MSBuild Version'
+      inputs:
+        msbuildVersion: '$(msbuildVersion)'
+        solution: '$(solutionTools)'
+        msbuildArguments: '-version'
+
+    # restore the Nuget pkgs
+    - template: /build/dotnet/dotnet-restore-jf.yaml@templates
+      parameters:
+        Artifactory_ServiceConnection: ${{ variables['ArtifactoryConnection'] }}
+        Artifactory_ProjectKey: $(JFrogprojectKey)
+        Artifactory_Nuget_ReadRepo: $(JFrogtargetResolveRepo)
+        DotNet_Version: $(DotnetVersion)
+        DotNet_Arguments: '$(solutionCommonPlatform) /p:Configuration=${{ parameters.BuildConfiguration }}'
+        SolutionSearchPath: 'Components/CDAS/com'
+        UseDotNetCaching: true
+        DotNet_CacheRestoreLocation: $(Build.SourcesDirectory)/Components/CDAS/com/packages
+
+    # restore the Nuget pkgs in Tools.sln
+    - template: /build/dotnet/dotnet-restore-jf.yaml@templates
+      parameters:
+        Artifactory_ServiceConnection: ${{ variables['ArtifactoryConnection'] }}
+        Artifactory_ProjectKey: $(JFrogprojectKey)
+        Artifactory_Nuget_ReadRepo: $(JFrogtargetResolveRepo)
+        DotNet_Version: $(DotnetVersion)
+        DotNet_Arguments: '$(solutionTools) /p:Configuration=${{ parameters.BuildConfiguration }}'
+        SolutionSearchPath: 'Components/CDAS/com'
+        UseDotNetCaching: true
+        DotNet_CacheRestoreLocation: $(Build.SourcesDirectory)/Components/CDAS/com/packages
+
+    - template: /process/debug-helper.yaml@templates
+
+    # # Build CommonPlatform solution
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Build CommonPlatform Solution'
+    #   inputs:
+    #     command: 'build'
+    #     projects: '$(solutionCommonPlatform)'
+    #     arguments: '-c ${{ parameters.BuildConfiguration }} -p:Platform="$(buildPlatform)" $(buildParameters) -v ${{ parameters.LogLevel }}'
+
+    # # Build Tools solution
+    # # Have to continue to use vs/msbuild as the BenchProgrammer ResolveComReference is not supported using the dotnet tool
+    # - task: MSBuild@1
+    #   displayName: 'Build Tools Solution'
+    #   inputs:
+    #     msbuildVersion: '$(msbuildVersion)'
+    #     solution: '$(solutionTools)'
+    #     platform: '$(buildPlatform)'
+    #     configuration: '${{ parameters.BuildConfiguration }}'
+    #     msbuildArguments: '$(buildTarget) $(buildParameters)'
+    #     maximumCpuCount: true
+
+    # # Build Programmer solution
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Build Programmer Solution'
+    #   inputs:
+    #     command: 'build'
+    #     projects: '$(solutionProgrammer)'
+    #     arguments: '-c ${{ parameters.BuildConfiguration }} -p:Platform="$(buildPlatform)" $(buildParameters) -v ${{ parameters.LogLevel }}'
+
+    # # Build CommonPlatform solution for iOS
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Build CommonPlatform Solution for iOS Sanity'
+    #   condition: and(succeeded(), or(eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfigurationiOS }}', 'Skip_iOS_Build')))
+    #   inputs:
+    #     command: 'build'
+    #     projects: '$(solutionCommonPlatform)'
+    #     arguments: '-c $(BuildConfigurationiOSResolved) -p:Platform="$(buildPlatform)" $(buildParameters) -v ${{ parameters.LogLevel }}'
+
+    # # Build Programmer solution for iOS
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Build Programmer Solution for iOS Sanity'
+    #   condition: and(succeeded(), or(eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfigurationiOS }}', 'Skip_iOS_Build')))
+    #   inputs:
+    #     command: 'build'
+    #     projects: '$(solutionProgrammer)'
+    #     arguments: '-c $(BuildConfigurationiOSResolved) -p:Platform="$(buildPlatform)" $(buildParameters) -v ${{ parameters.LogLevel }}'
+
+    # # Set Build Status only when all steps above is successful
+    # - task: PowerShell@2
+    #   displayName: 'Set Build Status'
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: |
+    #       # Set Build Status which can be used in other tasks
+    #       Write-Output "##vso[task.setvariable variable=BuildStatus;isreadonly=true]Success"
+
+    # # Copy Common Platform build outputs to artifact staging folder
+    # - task: CopyFiles@2
+    #   displayName: 'Copy Common Platform Packages'
+    #   inputs:
+    #     sourceFolder: '$(buildOutputPath)'
+    #     targetFolder: '$(buildArtifactPath)'
+    #     contents: '*'
+
+    # # Copy Tool build outputs to artifact staging folder
+    # - task: CopyFiles@2
+    #   displayName: 'Copy Tool Packages'
+    #   inputs:
+    #     sourceFolder: '$(buildToolOutputPath)'
+    #     targetFolder: '$(buildToolArtifactPath)'
+    #     contents: '*'
+
+    # # Create tests output folder
+    # - task: PowerShell@2
+    #   displayName: 'Create Test Output Folder'
+    #   condition: and(succeeded(), eq('${{ parameters.Gated }}', 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: |
+    #       if (!(Test-Path -Path "$(testResultsPath)" -PathType Container)) {
+    #         New-Item -Path "$(testResultsPath)" -ItemType Directory
+    #       }
+
+    # # Run JavaScript unit tests
+    # - task: CmdLine@2
+    #   displayName: 'Test JavaScript'
+    #   timeoutInMinutes: 10
+    #   condition: and(succeeded(), eq('${{ parameters.Gated }}', 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   inputs:
+    #     script: |
+    #       $(Build.SourcesDirectory)/Components/CDAS/com/packages/chutzpah/$(chutzpahVersion)/tools/chutzpah.console.exe $(Build.SourcesDirectory)/Components/CDAS/com/medtronic/heart/ui/javascript /junit $(testResultsPath)/Heart.UI.JavaScript.xml $(JSTESTPARALLELISM)
+
+    # # Validate JavaScript unit tests
+    # - task: PowerShell@2
+    #   displayName: 'Validate Javascript Tests'
+    #   condition: and(succeeded(), eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: |
+    #       $thresholdDuration = 20 # seconds
+
+    #       # Path to the XML file containing test results
+    #       $xmlFilePath = "$(testResultsPath)/Heart.UI.JavaScript.xml"
+
+    #       # Load the XML file
+    #       [xml]$xmlData = Get-Content $xmlFilePath
+
+    #       # The node and attribute to search for
+    #       $nodeName = "testsuite"
+    #       $attributeName = "tests"
+    #       $attributeValue = "0"
+
+    #       # Find nodes with the specified attribute value
+    #       $matchingNodes = $xmlData.SelectNodes("//$nodeName[@$attributeName='$attributeValue']")
+
+    #       # Check if matching nodes are found
+    #       $missingTests=@()
+    #       if ($matchingNodes -ne $null) {
+    #           foreach ($node in $matchingNodes) {
+    #               $missingTests += $($node.Name)
+    #           }
+    #       }
+
+    #       if($missingTests.Length -gt 0) {
+    #           Write-Output "Missing unit test cases for the following:"
+    #           foreach ($testFileName in $missingTests) {
+    #               $fileNameWithExtension = Split-Path -Path $testFileName -Leaf
+    #               Write-Output $fileNameWithExtension
+    #           }
+    #           throw "Missing unit test cases in javascript files. Please check if there is a syntax or references issue or unsupported ECMAScript version is used"
+    #       }
+
+    #       # Check the time taken attribute to fail if any test case takes more than $thresholdDuration
+    #       $attributeName = "time"
+    #       $attributeValue = "$thresholdDuration"
+
+    #       # Find nodes with the specified attribute value greater than $thresholdDuration
+    #       $matchingNodes = $xmlData.SelectNodes("//$nodeName[@$attributeName>'$attributeValue']")
+
+    #       # Check if matching nodes are found
+    #       $slowTests=@()
+    #       if ($matchingNodes -ne $null) {
+    #           foreach ($node in $matchingNodes) {
+    #               $slowTests += $($node.Name)
+    #           }
+    #       }
+
+    #       if($slowTests.Length -gt 0) {
+    #           Write-Output "Unit test cases for the following are taking more than $thresholdDuration seconds:"
+    #           foreach ($testFileName in $slowTests) {
+    #               $fileNameWithExtension = Split-Path -Path $testFileName -Leaf
+    #               Write-Output $fileNameWithExtension
+    #           }
+    #           throw "Performance issue in unit test cases. Please check if test case file has too many tests, consider fixing slow tests or organizing into multiple files."
+    #       }
+
+    # # Publish test results
+    # - task: PublishTestResults@2
+    #   displayName: 'Publish JavaScript Test Results'
+    #   condition: and(succeededOrFailed(), eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   inputs:
+    #     testResultsFormat: 'JUnit'
+    #     testResultsFiles: '**/*.xml'
+    #     searchFolder: '$(testResultsPath)'
+    #     mergeTestResults: true
+    #     publishRunAttachments: true
+    #     buildConfiguration: ${{ parameters.BuildConfiguration }}
+
+    # # Test All Solutions task
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Test All Solutions'
+    #   # This task name is referenced in GatherFailedTests.ps1
+    #   name: TestAllSolutions
+    #   timeoutInMinutes: 60
+    #   condition: and(succeeded(), eq('${{ parameters.Gated }}', 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   continueOnError: true
+    #   inputs:
+    #     command: 'test'
+    #     projects: |
+    #       $(solutionCommonPlatform)
+    #       $(solutionTools)
+    #       $(solutionProgrammer)
+    #     publishTestResults: false
+    #     arguments: >-
+    #       --configuration ${{ parameters.BuildConfiguration }}
+    #       --no-build
+    #       --blame
+    #       --blame-hang-timeout 300s
+    #       --blame-crash
+    #       --blame-hang-dump-type full
+    #       --settings $(testSettingsPath)
+    #       --logger trx --results-directory $(testResultsPath)
+    #       $(TestCodeCoverage)
+    #       -- NUnit.Where="$(testCategories) and (cat != RunAtLast and cat != Integration)"
+
+    # # Run all solutions RunAtLast unit tests
+    # - task: DotNetCoreCLI@2
+    #   displayName: 'Test All Solutions for RunAtLast and Integration'
+    #   # This task name is referenced in GatherFailedTests.ps1
+    #   name: TestRunAtLast
+    #   timeoutInMinutes: 30
+    #   condition: and(succeeded(), eq('${{ parameters.Gated }}', 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   continueOnError: true
+    #   inputs:
+    #     command: 'test'
+    #     projects: |
+    #       $(solutionCommonPlatform)
+    #       $(solutionTools)
+    #       $(solutionProgrammer)
+    #     publishTestResults: false
+    #     arguments: >-
+    #       --configuration ${{ parameters.BuildConfiguration }}
+    #       --no-build
+    #       --blame
+    #       --blame-hang-timeout 300s
+    #       --blame-crash
+    #       --blame-hang-dump-type full
+    #       --settings $(testSettingsPath)
+    #       --logger trx --results-directory $(testResultsPath)
+    #       $(TestCodeCoverage)
+    #       -- NUnit.Where="$(testCategories) and (cat == RunAtLast or cat == Integration)"
+
+    # # Check if the test results folder exists and BuildStatus is Success
+    # - task: PowerShell@2
+    #   displayName: 'Check Test Results folder and Build Status'
+    #   condition: and(succeededOrFailed(), eq(variables['BuildStatus'], 'Success'), eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   inputs:
+    #     targetType: 'inline'
+    #     script: |
+    #       $FolderExists = Test-Path -Path "$(testResultsPath)" -PathType Container
+    #       Write-Output "##vso[task.setvariable variable=TestFolderExists]$FolderExists"
+
+    # # Gather failed tests 
+    # - task: PowerShell@2
+    #   enabled: true
+    #   timeoutInMinutes: 10
+    #   condition: and(succeededOrFailed(), eq(variables['BuildStatus'], 'Success'), eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'))
+    #   displayName: 'Gather failed tests'
+    #   env:
+    #     SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    #   inputs:
+    #     targetType: 'filePath'
+    #     pwsh: true
+    #     filePath: '$(Build.SourcesDirectory)/Scripts/GatherFailedTests.ps1'
+    #     arguments: >-
+    #       -BuildId "$(Build.BuildId)"
+    #       -Project "$(System.TeamProject)"
+    #       -OrgUrl "$(System.CollectionUri)"
+    #       -TestResultsPath "$(testResultsPath)"
+    #       -TestSettingsPath "$(testSettingsPath)"
+    #       -RerunFailedTests "$(RERUNFAILEDTESTS)"
+
+    # # Re-Run tests using filtered runsettings with built-in retries
+    # - task: DotNetCoreCLI@2
+    #   condition: eq(variables['FailedTestsExists'], 'true')
+    #   enabled: true
+    #   timeoutInMinutes: 15
+    #   displayName: 'Re-run failed tests (if any)'
+    #   retryCountOnTaskFailure: ${{ parameters.MaxFailedTestRetryCount }}
+    #   inputs:
+    #     command: 'test'
+    #     publishTestResults: false
+    #     projects: |
+    #       $(solutionCommonPlatform)
+    #       $(solutionTools)
+    #       $(solutionProgrammer)
+    #     arguments: >-
+    #       --configuration ${{ parameters.BuildConfiguration }}
+    #       --no-build
+    #       --settings $(testResultsPath)/failed-tests.runsettings
+    #       --logger trx --logger "console;verbosity=normal" --results-directory $(testResultsPath)
+    #       -- NUnit.Where="$(testCategories)"
+
+    # # Publish test results
+    # - task: PublishTestResults@2
+    #   enabled: true
+    #   displayName: 'Publish C# Test Results'
+    #   condition: and(succeededOrFailed(), eq(variables['TestFolderExists'], 'true'))
+    #   inputs:
+    #     testResultsFormat: 'VSTest'
+    #     testResultsFiles: '**/*.trx'
+    #     searchFolder: '$(testResultsPath)'
+    #     mergeTestResults: true
+    #     publishRunAttachments: true
+    #     buildConfiguration: ${{ parameters.BuildConfiguration }}
+
+    # # Convert Cobertura report into generic coverage data for SonarQube metrics
+    # # Also publish the Cobertura report in HTML format to display in Code Coverage tab of build
+    # - task: reportgenerator@5
+    #   displayName: 'Process Code Coverage Report'
+    #   condition: and(succeededOrFailed(), eq(variables['enableCodeCoverage'], 'true'), eq(variables['TestFolderExists'], 'true'))
+    #   inputs:
+    #     reports: $(testResultsPath)/**/*.cobertura.xml
+    #     publishCodeCoverageResults: true
+    #     targetdir: $(csTestCoveragePath)
+    #     reporttypes: Cobertura;SonarQube;HtmlInline_AzurePipelines
+
+    # # Run Code Analysis task for SonarQube
+    # - task: SonarQubeAnalyze@7
+    #   condition: and(succeededOrFailed(), eq(variables['BuildStatus'], 'Success'), eq(variables['enableSonarScanning'], 'true'))
+    #   displayName: 'Run SonarQube Analysis'
+
+    # # Publish Quality Gate Result task for SonarQube
+    # - task: SonarQubePublish@7
+    #   condition: and(succeededOrFailed(), eq(variables['BuildStatus'], 'Success'), eq(variables['enableSonarScanning'], 'true'))
+    #   displayName: 'Publish SonarQube Results'
+    #   inputs:
+    #     pollingTimeoutSec: '300'
+
+    # # Archive test result files to artifact staging folder
+    # - task: ArchiveFiles@2
+    #   displayName: 'Archive Test Results'
+    #   condition: and(succeededOrFailed(), eq(variables['TestFolderExists'], 'true'))
+    #   inputs:
+    #     rootFolderOrFile: '$(testResultsPath)'
+    #     replaceExistingArchive: false
+    #     includeRootFolder: false
+    #     archiveFile: '$(buildArchiveArtifactPath)/TestResults.zip'
+
+    # # Archive coverage result files to artifact staging folder
+    # - task: ArchiveFiles@2
+    #   displayName: 'Archive Coverage Results'
+    #   condition: and(succeededOrFailed(), eq(variables['TestFolderExists'], 'true'), eq(variables['enableCodeCoverage'], 'true'))
+    #   inputs:
+    #     rootFolderOrFile: '$(csTestCoveragePath)'
+    #     replaceExistingArchive: false
+    #     includeRootFolder: false
+    #     archiveFile: '$(buildArchiveArtifactPath)/CodeCoverage.zip'
+
+    # # Archive the workspace to artifact staging folder
+    # - task: ArchiveFiles@2
+    #   displayName: 'Archive Workspace'
+    #   condition: and(succeededOrFailed(), eq(${{ parameters.SaveWorkspace }}, 'true'))
+    #   inputs:
+    #     rootFolderOrFile: '$(Build.SourcesDirectory)'
+    #     includeRootFolder: false
+    #     archiveFile: '$(buildArchiveArtifactPath)/Workspace.zip'
+
+    # # Publish general build archive artifacts like test results and the workspace to build output
+    # - task: PublishBuildArtifacts@1
+    #   displayName: 'Publish Build Archive Artifacts'
+    #   condition: and(succeededOrFailed(), or(and(eq(${{ parameters.Gated }}, 'true'), ne('${{ parameters.BuildConfiguration }}', 'ReleaseMin'), eq(variables['TestFolderExists'], 'true')), eq(${{ parameters.SaveWorkspace }}, 'true')))
+    #   inputs:
+    #     pathToPublish: '$(buildArchiveArtifactPath)'
+    #     artifactName: 'BuildArchiveArtifacts'
+    #     parallel: true
+
+    # # Publish Common Platform artifacts as pipeline artifact
+    # - task: PublishPipelineArtifact@1
+    #   displayName: 'Publish Common Platform Pipeline Artifact'
+    #   inputs:
+    #     targetPath: '$(buildArtifactPath)'
+    #     artifact: 'CommonPlatformArtifacts'
+    #     parallel: true
+
+    # # Publish Tool artifacts as pipeline artifact
+    # - task: PublishPipelineArtifact@1
+    #   displayName: 'Publish Tool Pipeline Artifact'
+    #   inputs:
+    #     targetPath: '$(buildToolArtifactPath)'
+    #     artifact: 'ToolArtifacts'
+    #     parallel: true
+    
+    # # Publish Nuget packages to Artifactory
+    # - template: frwk-publish-nuget-template.yml
+    #   parameters:
+    #     Artifactory_ServiceConnection: ${{ variables['ArtifactoryConnection'] }}
+    #     Artifactory_PlatformServiceConnection: ${{ variables['ArtifactoryConnectionPlatform'] }}
+    #     Artifactory_ProjectKey: $(JFrogprojectKey)
+    #     Artifactory_Nuget_PushRepo: $(JFrogtargetPushRepo)
+    #     Artifactory_Nuget_ReadRepo: $(JFrogtargetResolveRepo)
+    #     Artifactory_BaseURI: ${{ variables['ArtifactoryURI'] }}
+    #     Artifactory_Xray_ServiceConnection: ${{ variables['XRayConnection'] }}
+    #     Artifactory_Audit_WorkingDirectory: '$(Build.SourcesDirectory)/Components/CDAS/com'
+    #     PublishPackages:
+    #       - pathToNupkgFiles: $(buildArtifactPath)/*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildArtifactPath)
+    #         DisplayName: Publish CommonPlatform Libraries
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishCommonPlatform }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/DomainSpecTestRunner.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish DomainSpecTestRunner
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishDomainSpecTestRunner }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Medtronic.MSBuildTasks.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish Medtronic.MSBuildTasks
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishMedtronicMSBuildTasks }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/DtcLite.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish DtcLite
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishDtcLite }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Programmer.Windows.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish Programmer.Windows
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishProgrammerWindows }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Tools.SiriusXmltuApplication.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish SiriusXmltu Command Line Exe
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishSiriusXmltu }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/SiriusXmltu.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish SiriusXmltu UI Application
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishSiriusXmltu }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Tools.SiriusXmltu.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish SiriusXmltu Library
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishSiriusXmltu }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/BenchProgrammer.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish BenchProgrammer
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishBenchProgrammer }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/SPI_Expression_Tester.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish SPI_Expression_Tester
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishExpressionTester }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Localization.MergeAudit.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish Localization Merge Audit
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq('${{ parameters.PublishLocalizationMergeAuditTool }}', 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/LabelFinder.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish LabelFinder
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishLabelFinder }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/LabelComparer.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish LabelComparer
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishLabelComparer }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/LabelProcessor.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish LabelProcessor
+    #         Condition: and(succeeded(), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishLabelProcessor }}, 'true'))
+    #       - pathToNupkgFiles: $(buildArtifactPath)/Medtronic.UISpecTestHelper.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildArtifactPath)
+    #         DisplayName: Publish UISpecTestHelper
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishUISpecTestHelper }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/LabelUsages.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish LabelUsages
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishLabelUsages }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/ChoiceElementProcessor.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish ChoiceElementProcessor
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishChoiceElementProcessor }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/ViewTestRunner.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish ViewTestRunner
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishViewTestRunner }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/GenerateViewUnitTests.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish GenerateViewUnitTests
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishGenerateViewUnitTests }}, 'true'))
+    #       - pathToNupkgFiles: $(buildToolArtifactPath)/Medtronic.Tools.DeltaTranslations.*.nupkg
+    #         FailIfExistingPackages: true
+    #         RenameExistingPackages: false
+    #         pathToNupkgFilesRoot: $(buildToolArtifactPath)
+    #         DisplayName: Publish Medtronic.Tools.DeltaTranslations
+    #         Condition: and(succeeded(), eq(${{ parameters.EnableLocalization }}, 'true'), eq(variables['artifactPublishAllowed'], 'true'), eq(${{ parameters.PublishDeltaTranslations }}, 'true'))

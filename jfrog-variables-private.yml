@@ -1,0 +1,18 @@
+variables:
+  - name: ArtifactoryConnection
+    value: '$(JFrogArtifactory_ServiceConnection_Private)'
+  
+  - name: ArtifactoryConnectionPlatform
+    value: '$(JFrogArtifactory_PlatformServiceConnection_Private)'
+
+  - name: XRayConnection
+    value: '$(JFrogArtifactory_Xray_ServiceConnection_Private)'
+
+  - name: ArtifactoryURI
+    value: '$(JFrogBaseURI_Private)'
+
+  - name: ArtifactoryURISource
+    value: '$(JFrogSmartsyncSource_Private)'
+
+  - name: UsePrivateEndpoint
+    value: 'true'

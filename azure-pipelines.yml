@@ -1,0 +1,190 @@
+# Specify user facing parameters that can be set on the pipeline web interface
+parameters:
+  - name: BuildConfiguration
+    displayName: 'Build Configuration'
+    type: string
+    default: 'Release'
+    values:
+      - 'Release'
+      - 'ReleaseMin'
+      - 'Debug'
+
+  - name: BuildConfigurationiOS
+    displayName: 'Build Configuration iOS (sanity only, no IPA)'
+    type: string
+    default: 'Default'
+    values:
+      - 'Default'
+      - 'iOS_Staging'
+      - 'iOS_VT'
+      - 'iOS_Debug'
+      - 'Skip_iOS_Build'
+
+  - name: Gated
+    displayName: 'Gated Build (runs tests)'
+    type: boolean
+    default: true
+
+  - name: MaxFailedTestRetryCount
+    displayName: 'Max retry count for failed tests'
+    type: number
+    default: 3
+
+  - name: CodeCoverage
+    displayName: 'Collect code coverage'
+    type: boolean
+    default: false
+
+  - name: SonarQube
+    displayName: 'Run static analysis'
+    type: boolean
+    default: false
+
+  - name: SaveWorkspace
+    displayName: 'Save workspace'
+    type: boolean
+    default: false
+
+  # This parameter is only present to be used as a section comment, do not reference it in build
+  - name: PublishCommentDoNotUse
+    displayName: 'Publish checkboxes below are for Release builds on gated branches only'
+    type: string
+    default: '--'
+    values:
+      - '--'
+
+  - name: PublishCommonPlatform
+    displayName: 'Publish CommonPlatform (framework)'
+    type: boolean
+    default: false
+
+  - name: PublishProgrammerWindows
+    displayName: 'Publish Programmer.Windows (without localization)'
+    type: boolean
+    default: false
+
+  - name: PublishDomainSpecTestRunner
+    displayName: 'Publish DomainSpecTestRunner'
+    type: boolean
+    default: false
+
+  - name: PublishMedtronicMSBuildTasks
+    displayName: 'Publish Medtronic.MSBuildTasks'
+    type: boolean
+    default: false
+
+  - name: PublishDtcLite
+    displayName: Publish DtcLite
+    type: boolean
+    default: false
+
+  - name: PublishSiriusXmltu
+    displayName: 'Publish SiriusXMLTU'
+    type: boolean
+    default: false
+
+  - name: PublishBenchProgrammer
+    displayName: 'Publish BenchProgrammer'
+    type: boolean
+    default: false
+
+  - name: PublishExpressionTester
+    displayName: 'Publish ExpressionTester'
+    type: boolean
+    default: false
+
+  - name: PublishLocalizationMergeAuditTool
+    displayName: 'Publish Localization Merge Audit'
+    type: boolean
+    default: false
+
+  - name: PublishLabelFinder
+    displayName: 'Publish LabelFinder'
+    type: boolean
+    default: false
+
+  - name: PublishLabelComparer
+    displayName: 'Publish LabelComparer'
+    type: boolean
+    default: false
+
+  - name: PublishLabelProcessor
+    displayName: 'Publish LabelProcessor'
+    type: boolean
+    default: false
+
+  - name: LogLevel
+    displayName: 'Log Level'
+    type: string
+    default: 'minimal'
+    values:
+      - 'minimal'
+      - 'quiet'
+      - 'normal'
+      - 'detailed'
+      - 'diagnostic'
+
+  - name: AgentName
+    type: string
+    default: 'CRM-Windows-US'
+    values:
+      - 'TFS300'
+      - 'CRM-Windows-US'
+      - 'MSPM7AAPPD0024'
+      - 'Private-Agent-Pool'
+
+# Specify the resources required by the pipeline, such as git repositories
+resources:
+  repositories:
+  # Include the submodule repositories as resources so that the pipeline is able to clone them
+  - repository: smartsync-instrumentmobile-release
+    type: git
+    name: smartsync-instrumentmobile-release
+  - repository: smartsync-persisted-discretedata-content
+    type: git
+    name: smartsync-persisted-discretedata-content
+  # Include for JFrog
+  - repository: templates
+    name: shared/mlife-cicd-azdo-pipeline-templates
+    type: git
+    ref: refs/tags/v0.0.0-feat-PR130093
+  - repository: tools
+    type: git
+    name: smartsync-tool-dev
+    ref: develop
+    
+# Specify when the pipeline should be automatically ran
+trigger: none
+
+variables:
+- group: SmartSyncFrwk
+- name: DEVTOOLSBranch
+  value: $[ resources.repositories.tools.ref ]
+
+jobs:
+- template: PipelineTemplates/frwk-build-template.yml
+  parameters:
+    BuildConfiguration: ${{ parameters.BuildConfiguration }}
+    BuildConfigurationiOS: ${{ parameters.BuildConfigurationiOS }}
+    Gated: ${{ parameters.Gated }}
+    MaxFailedTestRetryCount: ${{ parameters.MaxFailedTestRetryCount }}
+    CodeCoverage: ${{ parameters.CodeCoverage }}
+    SonarQube: ${{ parameters.SonarQube }}
+    SaveWorkspace: ${{ parameters.SaveWorkspace }}
+    PublishCommonPlatform: ${{ parameters.PublishCommonPlatform }}
+    PublishDomainSpecTestRunner: ${{ parameters.PublishDomainSpecTestRunner }}
+    PublishMedtronicMSBuildTasks: ${{ parameters.PublishMedtronicMSBuildTasks }}
+    PublishDtcLite: ${{ parameters.PublishDtcLite }}
+    PublishProgrammerWindows: ${{ parameters.PublishProgrammerWindows }}
+    PublishSiriusXmltu: ${{ parameters.PublishSiriusXmltu }}
+    PublishBenchProgrammer: ${{ parameters.PublishBenchProgrammer }}
+    PublishExpressionTester: ${{ parameters.PublishExpressionTester }}
+    PublishLocalizationMergeAuditTool: ${{ parameters.PublishLocalizationMergeAuditTool }}
+    PublishLabelFinder: ${{ parameters.PublishLabelFinder }}
+    PublishLabelComparer: ${{ parameters.PublishLabelComparer }}
+    PublishLabelProcessor: ${{ parameters.PublishLabelProcessor }}
+    LogLevel: ${{ parameters.LogLevel }}
+    AgentName: ${{ parameters.AgentName }}
+    EnableLocalization: false
+    toolsRef: $(DEVTOOLSBranch)
+
