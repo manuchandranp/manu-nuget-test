@@ -26,7 +26,7 @@ jobs:
         displayName: 'Restore NuGet Packages'
         inputs:
           command: 'restore'
-          projects: '**/*.sln'  # Adjust to ensure this points to your .sln or .csproj files
+          projects: '**/*.csproj'  # Adjust to ensure this points to your .sln or .csproj files
       # Install dependencies
       - task: JFrogDotnetCore@1
         displayName: 'Install Dependencies'
