@@ -1,3 +1,4 @@
+# azure-pipelines.yml
 parameters:
   - name: BuildConfiguration
     displayName: 'Build Configuration'
@@ -6,41 +7,60 @@ parameters:
     values:
       - 'Release'
       - 'Debug'
+
 jobs:
   - job: BuildAndPublish
     displayName: 'Build and Publish to Artifactory'
     pool:
       vmImage: 'windows-latest'
     steps:
-      # Checkout the source code
+      # 1. Checkout the source code
       - checkout: self
-      # Use the .NET SDK version required by your project
+        displayName: 'Checkout Source Code'
+
+      # 2. Use the specific .NET SDK version required by your project
       - task: UseDotNet@2
-        displayName: 'Install .NET SDK'
+        displayName: 'Install .NET SDK 6.x'
         inputs:
           packageType: 'sdk'
           version: '6.x'  # Adjust version as needed
           installationPath: $(Agent.ToolsDirectory)/dotnet
-      # Restore NuGet packages
+
+      # 3. Restore NuGet packages (FIXED)
+      #    - The 'projects' input must specify the path to your .sln or .csproj file.
       - task: DotNetCoreCLI@2
         displayName: 'Restore NuGet Packages'
         inputs:
           command: 'restore'
-          projects: '**/*.sln'  # Adjust to your solution or project file
-      # Execute JFrogDotnetCore task to install dependencies
+          # ⚠️ Update this path to your solution file (e.g., 'src/MySolution.sln')
+          projects: '**/YourSolutionName.sln' 
+
+      # 4. Build the project
+      - task: DotNetCoreCLI@2
+        displayName: 'Build Project'
+        inputs:
+          command: 'build'
+          # Use the same project file path
+          projects: '**/YourSolutionName.sln' 
+          arguments: '--configuration ${{ parameters.BuildConfiguration }}'
+          
+      # 5. Execute JFrogDotnetCore task to install dependencies (using 'custom' command)
       - task: JFrogDotnetCore@1
-        displayName: 'Install Dependencies'
+        displayName: 'Install Dependencies (MAUI workloads)'
         inputs:
           command: 'custom'
           customCommand: 'workload'
+          # This command will only work if the dotnet executable is used by the JFrog task
           arguments: 'install maui-desktop maui-ios'
           artifactoryConnection: 'crm-terraform-us-jfrog-artifactory-private-ep'
           targetResolveRepo: 'manu-nuget-virtual'
-          rootPath: '$(Build.SourcesDirectory)'
-      # Optionally, Publish artifacts if needed
+          rootPath: '$(Build.SourcesDirectory)' # Context for the custom command
+
+      # 6. Optionally, Publish artifacts 
+      #    - Adjust 'pathToPublish' to the directory containing your compiled outputs (e.g., bin/Release/)
       - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifacts'
+        displayName: 'Publish Build Artifacts'
         inputs:
-          pathToPublish: '$(Build.SourcesDirectory)/path-to-artifacts'  # Adjust accordingly
+          pathToPublish: '$(Build.SourcesDirectory)/path-to-your/bin/${{ parameters.BuildConfiguration }}/' # ⚠️ ADJUST THIS PATH
           artifactName: 'NuGetArtifacts'
           publishLocation: 'Container'
