@@ -37,6 +37,9 @@ jobs:
           artifactoryConnection: 'crm-terraform-us-jfrog-artifactory-private-ep'
           targetResolveRepo: 'manu-nuget-virtual'
           rootPath: '$(Build.SourcesDirectory)'
+          username: 'YOUR_USERNAME'  
+          accessToken: 'YOUR_ACCESS_TOKEN'
+
       # Publish artifacts
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
