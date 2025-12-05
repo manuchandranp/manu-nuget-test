@@ -44,6 +44,7 @@ jobs:
       - task: PublishBuildArtifacts@1
         displayName: 'Publish Artifacts'
         inputs:
-          pathToPublish: '$(Build.SourcesDirectory)/path-to-artifacts'  # Adjust as necessary
+          pathToPublish: '$(Build.SourcesDirectory)'  # Adjust as necessary
           artifactName: 'NuGetArtifacts'
+
           publishLocation: 'Container'
